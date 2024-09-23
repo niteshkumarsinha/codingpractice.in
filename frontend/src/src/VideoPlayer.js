@@ -1,19 +1,22 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
+import { fetchSignedUrl } from '../api';
 
-const VideoPlayer = ({ videoUrl }) => {
-  const videoRef = useRef(null);
+const VideoPlayer = ({ problemId }) => {
+  const [videoUrl, setVideoUrl] = useState('');
 
   useEffect(() => {
-    if (videoRef.current) {
-      videojs(videoRef.current, { controls: true, autoplay: false, preload: 'auto' });
-    }
-  }, [videoUrl]);
+    const loadVideo = async () => {
+      const response = await fetchSignedUrl(problemId);
+      setVideoUrl(response.signedUrl);
+    };
+    loadVideo();
+  }, [problemId]);
 
   return (
     <div>
-      <video ref={videoRef} className="video-js" controls preload="auto" width="640" height="264">
+      <video className="video-js" controls preload="auto" width="640" height="264">
         <source src={videoUrl} type="video/mp4" />
         Your browser does not support the video tag.
       </video>

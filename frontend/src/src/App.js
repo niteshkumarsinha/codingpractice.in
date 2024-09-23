@@ -3,6 +3,8 @@ import ProblemList from './components/ProblemList';
 import CodeEditor from './components/CodeEditor';
 import VideoPlayer from './components/VideoPlayer';
 import { submitCode } from './api';
+import { AmplifyAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
+
 
 function App() {
   const [selectedProblem, setSelectedProblem] = useState(null);
@@ -21,6 +23,7 @@ function App() {
   };
 
   return (
+    <AmplifyAuthenticator>
     <div>
       <h1>Coding Platform</h1>
       {!selectedProblem ? (
@@ -34,6 +37,7 @@ function App() {
         </>
       )}
     </div>
+    </AmplifyAuthenticator>
   );
 }
 
