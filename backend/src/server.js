@@ -8,6 +8,8 @@ const multer = require('multer');
 const lambda = new AWS.Lambda();
 const rateLimit = require('express-rate-limit');
 
+const { verifyToken } = require('./middlewares/auth');  // JWT token verification for admin
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -169,6 +171,56 @@ app.post('/submit', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Code execution failed' });
   }
 });
+
+
+
+// // Configure Multer to handle file uploads
+// const storage = multer.memoryStorage();
+// const upload = multer({ storage });
+
+// // Set up AWS S3
+// const s3 = new AWS.S3({
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+//   region: process.env.AWS_REGION,
+// });
+
+// Admin-only route to upload video to S3
+app.post('/upload-video', verifyToken, upload.single('video'), (req, res) => {
+  const file = req.file;
+  const { problemId } = req.body;
+
+  if (!file) {
+    return res.status(400).json({ message: "No file uploaded." });
+  }
+
+  const s3Params = {
+    Bucket: 'your-s3-bucket-name',
+    Key: `videos/${problemId}/${file.originalname}`,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+    ACL: 'public-read',  // or use private if using signed URLs
+  };
+
+  s3.upload(s3Params, (err, data) => {
+    if (err) {
+      console.error("Error uploading video: ", err);
+      return res.status(500).json({ message: "Video upload failed." });
+    }
+
+    return res.status(200).json({ message: "Video uploaded successfully.", videoUrl: data.Location });
+  });
+});
+
+
+
+// // Middleware for token verification
+// function verifyToken(req, res, next) {
+//   const token = req.headers.authorization;
+//   // ... Your existing token verification logic for admin access
+//   next();
+// }
+
 
 
 
