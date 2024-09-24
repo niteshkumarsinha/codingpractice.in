@@ -4,11 +4,25 @@ import CodeEditor from './components/CodeEditor';
 import VideoPlayer from './components/VideoPlayer';
 import { submitCode } from './api';
 import { AmplifyAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
+import { Auth } from 'aws-amplify';
+import VideoUpload from './components/VideoUpload';
+
 
 
 function App() {
   const [selectedProblem, setSelectedProblem] = useState(null);
   const [submissionResult, setSubmissionResult] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  React.useEffect(() => {
+    Auth.currentAuthenticatedUser().then((user) => {
+      const groups = user.signInUserSession.accessToken.payload["cognito:groups"] || [];
+      if (groups.includes("Admin")) {
+        setIsAdmin(true);
+      }
+    });
+  }, []);
+
 
   const userId = 1; // Hardcoded for simplicity
 
@@ -36,6 +50,9 @@ function App() {
           )}
         </>
       )}
+
+      {isAdmin && <VideoUpload />}
+      <AmplifySignOut />
     </div>
     </AmplifyAuthenticator>
   );
