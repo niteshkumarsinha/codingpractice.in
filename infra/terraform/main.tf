@@ -174,3 +174,163 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/code_execution"
   retention_in_days = 14
 }
+
+
+# Create a Cognito User Pool
+resource "aws_cognito_user_pool" "user_pool" {
+  name = "coding-platform-user-pool"
+
+  password_policy {
+    minimum_length    = 8
+    require_numbers   = true
+    require_symbols   = false
+    require_uppercase = true
+    require_lowercase = true
+  }
+
+  auto_verified_attributes = ["email"]
+}
+
+# Create a Cognito User Pool Client
+resource "aws_cognito_user_pool_client" "user_pool_client" {
+  name         = "coding-platform-client"
+  user_pool_id = aws_cognito_user_pool.user_pool.id
+  generate_secret = false
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
+}
+
+# Create a Cognito Identity Pool
+resource "aws_cognito_identity_pool" "identity_pool" {
+  identity_pool_name               = "coding-platform-identity-pool"
+  allow_unauthenticated_identities = false
+
+  cognito_identity_providers {
+    client_id   = aws_cognito_user_pool_client.user_pool_client.id
+    provider_name = aws_cognito_user_pool.user_pool.endpoint
+  }
+}
+
+# IAM roles for authenticated users
+resource "aws_iam_role" "authenticated_role" {
+  name = "authenticated-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Federated = "cognito-identity.amazonaws.com"
+        },
+        Action = "sts:AssumeRoleWithWebIdentity",
+        Condition = {
+          StringEquals = {
+            "cognito-identity.amazonaws.com:aud": aws_cognito_identity_pool.identity_pool.id
+          },
+          "ForAnyValue:StringLike": {
+            "cognito-identity.amazonaws.com:amr": "authenticated"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "authenticated_role_policy" {
+  role = aws_iam_role.authenticated_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "mobileanalytics:PutEvents",
+          "cognito-sync:*",
+          "cognito-identity:*"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Create S3 bucket for storing video content
+resource "aws_s3_bucket" "video_bucket" {
+  bucket = "coding-platform-videos"
+  acl    = "private"
+}
+
+# Create CloudFront Distribution for the S3 bucket
+resource "aws_cloudfront_distribution" "cdn_distribution" {
+  origin {
+    domain_name = aws_s3_bucket.video_bucket.bucket_regional_domain_name
+    origin_id   = "S3-video-origin"
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+
+  default_cache_behavior {
+    allowed_methods  = ["GET", "HEAD"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-video-origin"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  price_class = "PriceClass_100"
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+# Create IAM policy to allow access to S3 from the CloudFront
+resource "aws_iam_policy" "s3_access_policy" {
+  name        = "s3-video-access-policy"
+  description = "Allow CloudFront to access S3 bucket"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["s3:GetObject"],
+        Resource = "${aws_s3_bucket.video_bucket.arn}/*"
+      }
+    ]
+  })
+}
+
+# IAM policy for accessing API Gateway
+resource "aws_iam_role_policy" "api_gateway_access_policy" {
+  role = aws_iam_role.authenticated_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "execute-api:Invoke"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
