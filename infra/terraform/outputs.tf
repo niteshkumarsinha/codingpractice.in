@@ -32,3 +32,49 @@ output "video_bucket_name" {
 output "cloudfront_distribution_domain" {
   value = aws_cloudfront_distribution.cdn_distribution.domain_name
 }
+
+output "user_pool_id" {
+  value = aws_cognito_user_pool.user_pool.id
+}
+
+output "user_pool_client_id" {
+  value = aws_cognito_user_pool_client.user_pool_client.id
+}
+
+output "identity_pool_id" {
+  value = aws_cognito_identity_pool.identity_pool.id
+}
+
+output "admin_role_arn" {
+  value = aws_iam_role.admin_role.arn
+}
+
+output "s3_bucket_name" {
+  value = aws_s3_bucket.video_bucket.bucket
+}
+
+
+# Outputs for your application
+output "user_pool_id" {
+  value = aws_cognito_user_pool.user_pool.id
+}
+
+output "user_pool_client_id" {
+  value = aws_cognito_user_pool_client.user_pool_client.id
+}
+
+output "identity_pool_id" {
+  value = aws_cognito_identity_pool.identity_pool.id
+}
+
+output "admin_role_arn" {
+  value = aws_iam_role.admin_role.arn
+}
+
+output "s3_bucket_name" {
+  value = aws_s3_bucket.video_bucket.bucket
+}
+
+output "cloudfront_distribution_domain" {
+  value = aws_cloudfront_distribution.cdn.domain_name
+}

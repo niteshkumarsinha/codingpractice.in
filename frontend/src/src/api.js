@@ -43,3 +43,26 @@ export const uploadVideo = async (problemId, videoFile) => {
     console.error("Error uploading video", error);
   }
 };
+
+
+
+// import axios from 'axios';
+
+// export const uploadVideo = async (formData) => {
+//   const token = (await Auth.currentSession()).getIdToken().getJwtToken();
+
+//   const config = {
+//     headers: {
+//       'Authorization': token,
+//       'Content-Type': 'multipart/form-data',
+//     },
+//   };
+
+//   try {
+//     const response = await axios.post('http://your-backend-api-url/upload-video', formData, config);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error uploading video:', error);
+//     throw error;
+//   }
+// };
