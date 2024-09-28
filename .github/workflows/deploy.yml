@@ -50,15 +50,15 @@ jobs:
 
       - name: Initialize Terraform
         run: terraform init
-        working-directory: terraform
+        working-directory: infra/terraform
 
       - name: Plan Terraform Deployment
         run: terraform plan
-        working-directory: terraform
+        working-directory: infra/terraform
 
       - name: Apply Terraform Deployment
         run: terraform apply -auto-approve
-        working-directory: terraform
+        working-directory: infra/terraform
 
   backend-deploy:
     name: Build and Deploy Backend (Node.js) with AWS Lambda
@@ -75,7 +75,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend
+          cd backend/src
           npm install
 
       - name: Deploy Backend to AWS Lambda
@@ -102,12 +102,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend
+          cd frontend/src
           npm install
 
       - name: Build frontend
         run: |
-          cd frontend
+          cd frontend/src
           npm run build
 
       - name: Deploy to S3
@@ -115,7 +115,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 sync frontend/build/ s3://your-s3-bucket-name --delete
+          aws s3 sync frontend/src/build/ s3://your-s3-bucket-name --delete
 
       - name: Invalidate CloudFront cache
         run: |
