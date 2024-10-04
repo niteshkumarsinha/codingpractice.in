@@ -5,8 +5,9 @@ function CodeEditor() {
     <div className="App">
       <h1>Monaco Editor in React</h1>
       <Editor
-        height="90vh"  // You can adjust the height
-        defaultLanguage="javascript"  // Choose a default language (e.g., 'javascript', 'python', etc.)
+        width="70vw"
+        height="80vh"  // You can adjust the height
+        defaultLanguage="python"  // Choose a default language (e.g., 'javascript', 'python', etc.)
         defaultValue="// Write your code here"
         theme="vs-dark"  // Theme (e.g., 'vs-light', 'vs-dark')
       />
