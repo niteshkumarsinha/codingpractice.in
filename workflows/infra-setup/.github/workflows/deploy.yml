@@ -1,0 +1,122 @@
+name: CI/CD Pipeline for Coding Platform
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  setup-environment:
+    name: Set up AWS Credentials and Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Install Terraform CLI
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -o terraform.zip https://releases.hashicorp.com/terraform/1.0.5/terraform_1.0.5_linux_amd64.zip
+          unzip terraform.zip
+          sudo mv terraform /usr/local/bin/
+
+  terraform-deploy:
+    name: Deploy Infrastructure with Terraform (Cognito, S3, CloudFront)
+    needs: setup-environment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: infra/terraform
+
+      - name: Plan Terraform Deployment
+        run: terraform plan
+        working-directory: infra/terraform
+
+      - name: Apply Terraform Deployment
+        run: terraform apply -auto-approve
+        working-directory: infra/terraform
+
+  backend-deploy:
+    name: Build and Deploy Backend (Node.js) with AWS Lambda
+    needs: terraform-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd backend/src
+          npm install
+
+      - name: Deploy Backend to AWS Lambda
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          zip -r lambda-function.zip .
+          aws lambda update-function-code --function-name your-lambda-function-name --zip-file fileb://lambda-function.zip
+        working-directory: backend
+
+  frontend-deploy:
+    name: Build and Deploy Frontend (React) to S3
+    needs: terraform-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd frontend/src
+          npm install
+
+      - name: Build frontend
+        run: |
+          cd frontend/src
+          npm run build
+
+      - name: Deploy to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws s3 sync frontend/src/build/ s3://your-s3-bucket-name --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation --distribution-id your-cloudfront-distribution-id --paths "/*"
