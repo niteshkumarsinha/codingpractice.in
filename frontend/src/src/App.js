@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
+import CodeEditor from './components/code-editor/CodeEditor';
 
 function App() {
   return (
-    <div>Coding Practice</div>
+    <CodeEditor />
   )
 }
 
